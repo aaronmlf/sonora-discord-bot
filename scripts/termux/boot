@@ -1,0 +1,7 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -e
+export PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+export PATH="$PREFIX/bin:$PATH"
+
+termux-wake-lock || printf '%s\n' 'Sonora: não foi possível solicitar o wake lock.' >&2
+. "$PREFIX/etc/profile.d/start-services.sh"

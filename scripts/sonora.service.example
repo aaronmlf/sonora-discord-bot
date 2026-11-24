@@ -1,0 +1,49 @@
+[Unit]
+Description=Sonora Discord audio bot
+# Serviço de USUÁRIO: instale em ~/.config/systemd/user/sonora.service.
+# O network-online.target do sistema não ordena serviços desta instância.
+# O Sonora tenta reconectar ao Discord quando a rede volta.
+# Continue tentando se o disco do projeto ainda não estiver montado no boot.
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+# Substitua pelo diretório absoluto do projeto e pelo resultado de command -v node.
+# Coloque caminhos que contêm espaços entre aspas. Não use npm start aqui.
+WorkingDirectory=/CAMINHO/DO/Bot_Música
+ExecStart=/CAMINHO/DO/node dist/src/index.js
+# .env é lido pelo próprio Sonora no WorkingDirectory; não copie tokens aqui.
+Environment=NODE_ENV=production
+# Serviços não carregam o .bashrc. Inclua aqui outras pastas de executáveis
+# se FFmpeg/FFprobe/yt-dlp estiverem fora destes caminhos. %h é a pasta do usuário.
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+# Recuse iniciar sem a compilação, inclusive se o volume estiver indisponível.
+ExecStartPre=/usr/bin/test -r dist/src/index.js
+# Se AUDIO_DIR ficar em OUTRO disco, descomente e ajuste este teste para impedir
+# que uma biblioteca vazia seja indexada antes de esse disco estar montado:
+# ExecStartPre=/usr/bin/mountpoint --quiet /PONTO/DE/MONTAGEM-DO-AUDIO
+
+# systemctl --user stop sonora continua parando sem reiniciar.
+# O intervalo limita falhas persistentes (disco ausente/configuração inválida)
+# a uma tentativa a cada 30 segundos, sem desistir após algumas tentativas.
+Restart=always
+RestartSec=30s
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+# Entrega SIGTERM ao Node para salvar filas/encerrar áudio; remove também
+# FFmpeg e yt-dlp remanescentes quando o processo termina ou esgota o prazo.
+KillSignal=SIGTERM
+KillMode=mixed
+
+# Proteções compatíveis com Node/FFmpeg, arquivos locais e serviço sem root.
+# Evite MemoryDenyWriteExecute (JIT do Node) e ProtectHome/PrivateTmp sem adaptar
+# os caminhos de áudio, cookies e dependências instaladas pelo usuário.
+NoNewPrivileges=yes
+UMask=0077
+LimitCORE=0
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sonora
+
+[Install]
+WantedBy=default.target

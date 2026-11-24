@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Painel local do Sonora, um bot self-hosted de audio para Discord."
+    />
+    <title>Sonora — Painel do bot</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+    <script src="/preferences.js" defer></script>
+    <script src="/studio.js" defer></script>
+    <script src="/sharing.js" defer></script>
+    <link rel="stylesheet" href="/sharing.css" />
+    <link rel="stylesheet" href="/studio.css" />
+  </head>
+  <body>
+    <section class="access-gate" id="invite-gate" hidden>
+      <div class="access-card panel">
+        <a class="brand access-brand" href="/" aria-label="Sonora">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>SONORA</span>
+        </a>
+        <p class="eyebrow">CONVITE DE ACESSO</p>
+        <h1 id="invite-title">Abrir o painel compartilhado</h1>
+        <p id="invite-copy">Validando seu convite com o Sonora…</p>
+        <p class="access-error" id="invite-error" role="alert" hidden></p>
+        <button class="primary-button wide" id="accept-invite" type="button" disabled>
+          Aceitar e abrir o painel
+        </button>
+        <small>Ao aceitar, este convite deixa de funcionar e o acesso fica salvo neste navegador.</small>
+      </div>
+    </section>
+
+    <div class="app-shell" id="app-shell" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="#player" aria-label="Ir para o player">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>SONORA</span>
+        </a>
+
+        <nav class="main-nav" aria-label="Navegação principal">
+          <a class="nav-item" href="#settings" data-view="settings"><span aria-hidden="true">⚙</span> Preferências</a>
+          <a class="nav-item active" href="#player" data-view="player">
+            <span aria-hidden="true">●</span> Player
+          </a>
+          <a class="nav-item" href="#library" data-view="library">
+            <span aria-hidden="true">▦</span> Biblioteca
+          </a>
+          <a class="nav-item" href="#effects" data-view="effects">
+            <span aria-hidden="true">✦</span> Efeitos
+          </a>
+          <a class="nav-item" href="#playlists" data-view="playlists">
+            <span aria-hidden="true">☷</span> Playlists
+          </a>
+          <a class="nav-item" id="sharing-nav" href="#sharing" data-view="sharing" hidden>
+            <span aria-hidden="true">⌁</span> Compartilhar
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="bot-status" id="bot-status">
+            <span class="status-dot"></span>
+            <span>
+              <strong id="bot-status-title">Verificando bot</strong>
+              <small id="bot-status-detail">Aguarde um instante</small>
+            </span>
+          </div>
+          <button class="text-button" id="open-token" type="button">Acesso ao painel</button>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">CENTRAL DE ÁUDIO</p>
+            <h1>Seu canal, no seu ritmo.</h1>
+          </div>
+          <label class="server-picker">
+            <span>Servidor ativo</span>
+            <select id="guild-select" aria-label="Servidor ativo">
+              <option value="">Nenhuma sessão</option>
+            </select>
+          </label>
+        </header>
+
+        <aside class="playback-availability panel" id="playback-availability" role="status" hidden>
+          <strong id="playback-availability-title"></strong>
+          <p id="playback-availability-copy"></p>
+        </aside>
+
+        <section class="view active" id="player-view" data-view-panel="player">
+          <div class="player-grid">
+            <article class="now-playing panel">
+              <div class="cover-art" id="cover-art" aria-hidden="true">
+                <span class="cover-ring"></span>
+                <span class="cover-note">S</span>
+              </div>
+              <div class="track-summary">
+                <div class="track-heading">
+                  <div>
+                    <p class="eyebrow" id="playback-label">NADA TOCANDO</p>
+                    <h2 id="current-title">Pronto para a primeira faixa</h2>
+                    <p id="current-artist">Use /play no Discord para chamar o bot.</p>
+                  </div>
+                  <span class="channel-pill" id="channel-pill">Fora da call</span>
+                </div>
+
+                <div class="player-error" id="player-error" role="alert" hidden></div>
+
+                <div class="timeline">
+                  <div class="timeline-track"><span id="timeline-progress"></span></div>
+                  <div class="timeline-labels">
+                    <span id="elapsed-time">0:00</span>
+                    <span id="duration-time">--:--</span>
+                  </div>
+                </div>
+
+                <div class="transport" aria-label="Controles de reprodução">
+                  <button class="control secondary" id="stop-button" type="button" aria-label="Parar">
+                    ■
+                  </button>
+                  <button class="control primary" id="play-pause-button" type="button" aria-label="Pausar ou retomar">
+                    ▶
+                  </button>
+                  <button class="control secondary" id="skip-button" type="button" aria-label="Pular">
+                    ▶|
+                  </button>
+                  <button class="control loop-control" id="loop-button" type="button">
+                    ↻ <span id="loop-label">Sem loop</span>
+                  </button>
+                </div>
+
+                <div class="volume-row">
+                  <label for="volume-input">Volume</label>
+                  <input id="volume-input" type="range" min="0" max="100" value="70" />
+                  <output id="volume-output" for="volume-input">70%</output>
+                </div>
+              </div>
+            </article>
+
+            <aside class="session-card panel">
+              <p class="eyebrow">SESSÃO ATIVA</p>
+              <strong id="session-guild">Nenhum servidor</strong>
+              <span id="session-channel">Use /join ou /play</span>
+              <dl>
+                <div><dt>Estado</dt><dd id="session-state">Ocioso</dd></div>
+                <div><dt>Na fila</dt><dd id="session-queue-count">0</dd></div>
+                <div><dt>Solicitado por</dt><dd id="session-requester">—</dd></div>
+              </dl>
+              <button class="danger-button" id="leave-button" type="button">Sair do canal</button>
+            </aside>
+          </div>
+
+          <section class="queue-section panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">A SEGUIR</p>
+                <h2>Fila de reprodução</h2>
+                <p class="queue-help">Clique em uma faixa para tocá-la agora.</p>
+              </div>
+              <button class="text-button" id="clear-queue" type="button">Limpar fila</button>
+            </div>
+            <ol class="queue-list" id="queue-list"></ol>
+            <div class="empty-state" id="queue-empty">
+              <span aria-hidden="true">♫</span>
+              <p>A fila está livre.</p>
+              <small>Escolha uma faixa na biblioteca ou use /play no Discord.</small>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="library-view" data-view-panel="library">
+          <div class="section-heading library-heading">
+            <div>
+              <p class="eyebrow">ARQUIVOS PESSOAIS</p>
+              <h2>Sua biblioteca</h2>
+            </div>
+            <div class="header-actions">
+              <button class="secondary-button" id="scan-button" type="button">Reindexar pasta</button>
+              <button class="primary-button" id="upload-music-button" type="button">Adicionar áudio</button>
+            </div>
+          </div>
+          <div class="library-tools panel">
+            <label class="search-field">
+              <span aria-hidden="true">⌕</span>
+              <input id="library-search" type="search" placeholder="Buscar título, artista ou álbum" />
+            </label>
+            <label class="playlist-filter" for="library-playlist-filter">
+              <span>Playlist</span>
+              <select id="library-playlist-filter" aria-label="Filtrar biblioteca por playlist">
+                <option value="">Sem filtro</option>
+              </select>
+            </label>
+            <span class="track-count" id="library-count">0 faixas</span>
+          </div>
+          <form class="external-source panel" id="external-form">
+            <div>
+              <label for="external-url">Link externo experimental</label>
+              <small>YouTube toca diretamente; Spotify procura a faixa equivalente no YouTube.</small>
+            </div>
+            <input
+              id="external-url"
+              type="url"
+              inputmode="url"
+              placeholder="https://youtube.com/watch?v=… ou https://open.spotify.com/track/…"
+              required
+            />
+            <button class="primary-button" id="external-add" type="submit">Adicionar à fila</button>
+          </form>
+          <section class="folder-browser panel" aria-label="Pastas de músicas">
+            <div class="folder-toolbar">
+              <nav class="folder-breadcrumbs" id="music-folder-breadcrumbs" aria-label="Caminho da pasta"></nav>
+              <div class="folder-actions" id="music-folder-actions" hidden>
+                <button class="secondary-button" id="music-folder-play-all" type="button">▶ Tocar todas</button>
+                <button class="secondary-button" id="music-folder-shuffle" type="button">⤨ Shuffle</button>
+              </div>
+            </div>
+            <div class="folder-grid" id="music-folder-list"></div>
+          </section>
+          <div class="track-list panel" id="music-list"></div>
+        </section>
+
+        <section class="view" id="effects-view" data-view-panel="effects">
+          <div class="section-heading library-heading">
+            <div>
+              <p class="eyebrow">SOUNDBOARD</p>
+              <h2>Efeitos sonoros</h2>
+              <p class="section-copy">Dispare efeitos sobre a música sem pausar ou alterar a fila.</p>
+            </div>
+            <button class="primary-button" id="upload-effect-button" type="button">Adicionar efeito</button>
+          </div>
+          <div class="filter-toolbar panel">
+            <label class="playlist-filter" for="effects-playlist-filter">
+              <span>Filtrar por playlist</span>
+              <select id="effects-playlist-filter" aria-label="Filtrar efeitos por playlist">
+                <option value="">Sem filtro</option>
+              </select>
+            </label>
+            <span class="track-count" id="effect-count">0 efeitos</span>
+          </div>
+          <div class="effect-volume panel">
+            <label for="effect-volume-input">Volume dos efeitos</label>
+            <input id="effect-volume-input" type="range" min="0" max="150" value="100" />
+            <output id="effect-volume-output" for="effect-volume-input">100%</output>
+            <span id="active-effect-count">Nenhum efeito tocando</span>
+          </div>
+          <section class="folder-browser panel" aria-label="Pastas de efeitos sonoros">
+            <div class="folder-toolbar">
+              <nav class="folder-breadcrumbs" id="effect-folder-breadcrumbs" aria-label="Caminho da pasta"></nav>
+              <div class="folder-actions" id="effect-folder-actions" hidden>
+                <button class="secondary-button" id="effect-folder-play-all" type="button">▶ Tocar todos</button>
+                <button class="secondary-button" id="effect-folder-shuffle" type="button">⤨ Shuffle</button>
+              </div>
+            </div>
+            <div class="folder-grid" id="effect-folder-list"></div>
+          </section>
+          <div class="effect-grid" id="effect-grid"></div>
+          <div class="empty-state panel" id="effects-empty">
+            <span aria-hidden="true">✦</span>
+            <p id="effects-empty-title">Nenhum efeito cadastrado.</p>
+            <small id="effects-empty-copy">Adicione arquivos curtos para montar sua soundboard.</small>
+          </div>
+        </section>
+
+        <section class="view" id="playlists-view" data-view-panel="playlists">
+          <div class="section-heading library-heading">
+            <div>
+              <p class="eyebrow">COLEÇÕES LOCAIS</p>
+              <h2>Suas playlists</h2>
+              <p class="section-copy">Combine músicas e efeitos locais na ordem que quiser.</p>
+            </div>
+            <button class="primary-button" id="new-playlist-button" type="button">Nova playlist</button>
+          </div>
+          <div class="playlist-layout">
+            <aside class="playlist-sidebar panel">
+              <div class="playlist-sidebar-title">
+                <strong>Playlists</strong>
+                <span id="playlist-count">0</span>
+              </div>
+              <div class="playlist-list" id="playlist-list"></div>
+            </aside>
+            <section class="playlist-editor panel" id="playlist-editor">
+              <div class="empty-state" id="playlists-empty">
+                <span aria-hidden="true">☷</span>
+                <p>Crie sua primeira playlist.</p>
+                <small>Depois, adicione qualquer música ou efeito pela biblioteca.</small>
+              </div>
+              <div id="playlist-content" hidden>
+                <div class="playlist-editor-heading">
+                  <div>
+                    <p class="eyebrow">PLAYLIST SELECIONADA</p>
+                    <h3 id="playlist-title"></h3>
+                    <p id="playlist-description"></p>
+                  </div>
+                  <div class="header-actions">
+                    <button class="secondary-button" id="edit-playlist-button" type="button">Editar</button>
+                    <button class="primary-button" id="queue-playlist-button" type="button">+ Adicionar à fila</button>
+                  </div>
+                </div>
+                <ol class="playlist-items" id="playlist-items"></ol>
+                <div class="empty-state compact" id="playlist-items-empty">
+                  <span aria-hidden="true">♫</span>
+                  <p>Esta playlist está vazia.</p>
+                  <small>Use “+ Playlist” em uma música ou efeito.</small>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="sharing-view" data-view-panel="sharing">
+          <div class="section-heading library-heading">
+            <div>
+              <p class="eyebrow">ACESSO REMOTO</p>
+              <h2>Compartilhar o controle</h2>
+              <p class="section-copy">Crie um link individual e revogue o acesso quando quiser.</p>
+            </div>
+          </div>
+
+          <article class="remote-status panel">
+            <span class="status-dot" id="remote-status-dot"></span>
+            <div>
+              <strong id="remote-status-title">Verificando configuração</strong>
+              <p id="remote-status-detail">Aguarde um instante.</p>
+              <a id="remote-public-url" href="#" target="_blank" rel="noreferrer" hidden></a>
+            </div>
+          </article>
+
+          <form class="invite-form panel" id="invite-form">
+            <div>
+              <p class="eyebrow">NOVO CONVITE</p>
+              <h3>Convidar uma pessoa</h3>
+              <small>O link funciona uma vez e expira em 24 horas.</small>
+            </div>
+            <label>
+              Nome da pessoa
+              <input id="invite-name" type="text" maxlength="80" placeholder="Ex.: Volt" required />
+            </label>
+            <button class="primary-button" id="create-invite" type="submit">Criar link</button>
+          </form>
+
+          <div class="generated-invite panel" id="generated-invite" hidden>
+            <div>
+              <strong>Link pronto para compartilhar</strong>
+              <small>Envie apenas para a pessoa convidada.</small>
+            </div>
+            <input id="generated-invite-url" type="text" readonly aria-label="Link de convite" />
+            <button class="secondary-button" id="copy-invite" type="button">Copiar link</button>
+          </div>
+
+          <div class="access-columns">
+            <section class="panel access-list-panel">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="eyebrow">COM ACESSO</p>
+                  <h3>Colaboradores</h3>
+                </div>
+              </div>
+              <div class="access-list" id="collaborator-list"></div>
+              <div class="empty-state compact" id="collaborator-empty">
+                <span aria-hidden="true">⌁</span>
+                <p>Ninguém recebeu acesso ainda.</p>
+              </div>
+            </section>
+
+            <section class="panel access-list-panel">
+              <div class="section-heading compact-heading">
+                <div>
+                  <p class="eyebrow">AGUARDANDO</p>
+                  <h3>Convites pendentes</h3>
+                </div>
+              </div>
+              <div class="access-list" id="invitation-list"></div>
+              <div class="empty-state compact" id="invitation-empty">
+                <span aria-hidden="true">✓</span>
+                <p>Nenhum convite pendente.</p>
+              </div>
+            </section>
+          </div>
+        </section>
+        <section class="view" data-view-panel="settings">
+          <div class="section-heading library-heading"><div><p class="eyebrow">SEU PAINEL</p><h2>Preferências</h2></div></div>
+          <section class="panel preferences-panel">
+            <h3>Cores da interface</h3>
+            <p>As mudanças são aplicadas na hora e salvas neste navegador.</p>
+            <div id="theme-colors" class="theme-colors"></div>
+            <button type="button" class="secondary-button" id="theme-reset">Restaurar cores originais</button>
+            <p id="theme-feedback" role="status"></p>
+          </section>
+          <section class="panel preferences-panel">
+            <h3>Indexação da biblioteca</h3>
+            <p id="scan-progress" role="status">Aguardando informações…</p>
+            <details><summary>Arquivos com problemas</summary><ul id="scan-errors"></ul></details>
+          </section>
+          <section class="panel preferences-panel" id="diagnostics-panel" hidden>
+            <h3>Diagnóstico do anfitrião</h3>
+            <button class="secondary-button" id="diagnostics-run" type="button">Verificar conexão e ferramentas</button>
+            <p id="diagnostics-result" role="status"></p>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <input id="file-input" type="file" accept="audio/*,.mp3,.flac,.wav,.ogg,.opus,.m4a,.aac,.webm" multiple hidden />
+
+    <dialog id="token-dialog" aria-labelledby="token-title">
+      <form id="token-form">
+        <p class="eyebrow">ACESSO DO ANFITRIÃO</p>
+        <h2 id="token-title">Entrar no painel</h2>
+        <p>Use o <code>ADMIN_TOKEN</code> configurado no computador que hospeda o Sonora.</p>
+        <label>
+          Token administrativo
+          <input id="token-input" type="password" autocomplete="current-password" aria-describedby="token-error" required />
+        </label>
+        <p id="token-error" class="inline-error" role="alert"></p>
+        <button class="primary-button wide" type="submit">Conectar</button>
+      </form>
+    </dialog>
+
+    <dialog id="track-dialog" aria-labelledby="track-dialog-title">
+      <form id="track-form">
+        <button class="dialog-close" type="button" data-close-dialog="track-dialog" aria-label="Fechar">×</button>
+        <p class="eyebrow">EDITAR ÁUDIO</p>
+        <h2 id="track-dialog-title">Detalhes do áudio</h2>
+        <input id="track-id" type="hidden" />
+        <label>
+          Título
+          <input id="track-title-input" type="text" maxlength="180" required />
+        </label>
+        <div class="dialog-columns">
+          <label>
+            Artista
+            <input id="track-artist-input" type="text" maxlength="180" placeholder="Opcional" />
+          </label>
+          <label>
+            Álbum
+            <input id="track-album-input" type="text" maxlength="180" placeholder="Opcional" />
+          </label>
+        </div>
+        <label>
+          Tipo
+          <select id="track-category-input">
+            <option value="music">Música</option>
+            <option value="effect">Efeito sonoro</option>
+          </select>
+        </label>
+        <p class="file-hint" id="track-file-hint"></p>
+        <div class="dialog-actions split">
+          <button class="danger-button" id="delete-track-button" type="button">Mover para lixeira</button>
+          <button class="primary-button" type="submit">Salvar mudanças</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="playlist-dialog" aria-labelledby="playlist-dialog-title">
+      <form id="playlist-form">
+        <button class="dialog-close" type="button" data-close-dialog="playlist-dialog" aria-label="Fechar">×</button>
+        <p class="eyebrow">PLAYLIST LOCAL</p>
+        <h2 id="playlist-dialog-title">Nova playlist</h2>
+        <p id="playlist-initial-track"></p>
+        <input id="playlist-id" type="hidden" />
+        <label>
+          Nome
+          <input id="playlist-name-input" type="text" maxlength="100" required />
+        </label>
+        <label>
+          Descrição
+          <textarea id="playlist-description-input" maxlength="400" rows="3" placeholder="Opcional"></textarea>
+        </label>
+        <div class="dialog-actions split">
+          <button class="danger-button" id="delete-playlist-button" type="button" hidden>Excluir playlist</button>
+          <button class="primary-button" type="submit">Salvar playlist</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="playlist-picker-dialog" aria-labelledby="playlist-picker-title">
+      <form id="playlist-picker-form">
+        <button class="dialog-close" type="button" data-close-dialog="playlist-picker-dialog" aria-label="Fechar">×</button>
+        <p class="eyebrow">ADICIONAR À PLAYLIST</p>
+        <h2 id="playlist-picker-title">Escolha uma playlist</h2>
+        <input id="playlist-track-id" type="hidden" />
+        <label>
+          Playlist
+          <select id="playlist-picker-select" required></select>
+        </label>
+        <button class="primary-button wide" type="submit">Adicionar</button>
+      </form>
+    </dialog>
+
+    <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+#!/data/data/com.termux/files/usr/bin/sh
+set -eu
+umask 077
+exec 2>&1
+
+# Give Termux's supervisor a pause between attempts if the app exits early.
+sleep 5
+cd "$HOME/sonora"
+exec "$PREFIX/bin/node" dist/src/index.js

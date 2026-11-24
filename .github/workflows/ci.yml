@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Node 22 / Linux / áudio local
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # No credentials, personal audio or network playback are needed in CI.
+      DOTENV_CONFIG_PATH: /dev/null
+      DISCORD_TOKEN: ""
+      DISCORD_CLIENT_ID: ""
+      DISCORD_GUILD_ID: ""
+      YTDLP_COOKIES_FILE: ""
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.x"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar FFmpeg e FFprobe
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+
+      - name: Instalar dependências do projeto
+        # DAVE and the TypeScript compiler use optional platform packages.
+        run: npm ci --include=dev --include=optional --no-audit --no-fund
+
+      - name: Verificar tipos
+        run: npm run typecheck
+
+      - name: Executar testes
+        run: npm test
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Verificar áudio, Opus e DAVE sem conectar ao Discord
+        run: npm run host:check
+        env:
+          HOST: 127.0.0.1
+          PORT: "3210"
+          ADMIN_TOKEN: ""
+          REMOTE_ACCESS_ENABLED: "false"
+          PUBLIC_URL: ""
+          DATA_DIR: ${{ runner.temp }}/sonora-ci-data
+          AUDIO_DIR: ${{ runner.temp }}/sonora-ci-audio
+          # yt-dlp is optional here; this job does not contact media providers.
+          YTDLP_PATH: yt-dlp

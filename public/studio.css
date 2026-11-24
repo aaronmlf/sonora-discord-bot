@@ -1,0 +1,44 @@
+.studio-toolbar, .studio-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+.studio-toolbar label, .studio-section label, .scene-dialog label { display: grid; gap: 8px; min-width: 0; font-size: .9rem; }
+.studio-toolbar input, .studio-toolbar select, .studio-section select, .scene-dialog input, .scene-dialog select, #studio-move-folder { color: var(--ink); background: var(--surface, #18171d); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-width: 100%; }
+.studio-check { display: flex !important; align-items: center; gap: 10px; }
+.studio-check input { width: auto; }
+.studio-row > span:first-child { flex: 1; min-width: 100px; overflow-wrap: anywhere; }
+.studio-row > label { flex: 1; min-width: 90px; }
+.studio-row input[type=number] { width: 100%; }
+.studio-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.studio-section { min-width: 0; padding: 22px; margin: 20px 0; }
+.studio-section h3 { margin-bottom: 16px; }
+.studio-section p { color: var(--muted); margin: 12px 0; }
+.studio-section select { min-width: 0; flex: 1; }
+.studio-section > summary { cursor: pointer; font-size: 1.1rem; }
+.studio-soundboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+.studio-soundboard button { min-width: 0; min-height: 85px; white-space: normal; overflow-wrap: anywhere; }
+.scene-dialog { width: min(700px, 94vw); max-height: 90vh; overflow-y: auto; }
+.scene-dialog fieldset { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.scene-choices { display: grid; gap: 10px; max-height: 220px; overflow-y: auto; }
+.track-menu { position: relative; font-size: .875rem; }
+.track-menu summary { cursor: pointer; padding: 9px; border: 1px solid var(--line); border-radius: 8px; list-style: none; }
+.track-menu summary:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+.track-menu[open] > summary { color: var(--accent-soft); border-color: var(--accent-soft); }
+.track-menu-content { position: absolute; right: 0; top: 100%; z-index: 10; display: grid; gap: 5px; padding: 10px; min-width: 220px; background: var(--surface, #18171d); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px #0008; }
+.track-menu-content button { text-align: left; }
+.track-row, .effect-card, #music-list { overflow: visible; }
+.track-actions, .effect-actions { flex-wrap: wrap; }
+.local-preview { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 40; width: min(800px, calc(100vw - 32px)); padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 300px) auto; align-items: center; gap: 15px; background: var(--surface, #18171d); box-shadow: 0 12px 40px #0008; }
+.local-preview[hidden], #queue-recovery[hidden] { display: none; }
+.local-preview span { min-width: 0; max-width: 280px; overflow-wrap: anywhere; }
+.local-preview audio { display: block; min-width: 0; width: 100%; }
+.duplicate-group { border-bottom: 1px solid var(--line); padding: 12px 0; }
+#queue-recovery { border: 1px solid var(--accent); border-radius: 12px; padding: 14px; }
+.presentation-mode .sidebar, .presentation-mode .topbar { display: none; }
+.presentation-mode .app-shell { grid-template-columns: 1fr; }
+.presentation-mode main { margin: 0; }
+.presentation-mode .studio-soundboard button { min-height: 140px; font-size: 1.25rem; }
+@media (max-width: 900px) { .studio-grid { grid-template-columns: 1fr; } .studio-toolbar { align-items: stretch; } .local-preview { grid-template-columns: minmax(0, 1fr) auto; bottom: 80px; gap: 10px; } .local-preview > span { grid-column: 1 / -1; max-width: none; } .main-nav { overflow-x: auto; } }
+@media (max-width: 700px) {
+  .track-menu-content { position: fixed; left: 16px; right: 16px; bottom: calc(var(--bottom-nav) + 10px); top: auto; min-width: 0; max-height: 55dvh; overflow-y: auto; }
+  .local-preview { bottom: calc(var(--bottom-nav) + 10px); }
+  .studio-soundboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) { .studio-section { padding: 17px; } .scene-dialog .studio-row > select { flex-basis: 100%; width: 100%; } .scene-dialog .studio-row > label { min-width: 0; flex-basis: 90px; } .local-preview { padding: 12px; } .local-preview > button { padding-inline: 9px; } }
