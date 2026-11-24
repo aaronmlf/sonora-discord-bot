@@ -117,17 +117,50 @@ Deixe o terminal aberto enquanto usa essa execução manual. Para encerrar corre
 
 ## 5. YouTube/Spotify: opcional e experimental
 
-A biblioteca local não precisa de `yt-dlp`. Para links externos:
+A biblioteca local não precisa de `yt-dlp` e não muda com esta correção. Para o Sonora v0.1.1, use como base o **yt-dlp 2026.11.23**, ou uma versão estável mais recente, com EJS compatível. Atualizar o ZIP do Sonora não atualiza essa ferramenta; a instalação é opcional e manual. Pare o bot antes de trocar o executável.
+
+Para uma primeira instalação pelo WinGet:
 
 ```powershell
 winget install --exact --id yt-dlp.yt-dlp --source winget --architecture x64
 ```
 
-Feche e reabra o terminal, volte à pasta do bot e confira `yt-dlp --version`. Para atualizar uma instalação feita pelo WinGet, use `winget upgrade --exact --id yt-dlp.yt-dlp --source winget`. O pacote pode instalar dependências adicionais. [Instalação e atualização documentadas pelo yt-dlp](https://github.com/yt-dlp/yt-dlp/wiki/Installation#windows)
+Para atualizar uma instalação existente feita pelo WinGet:
 
-Sem WinGet, obtenha `yt-dlp.exe` nas [releases oficiais](https://github.com/yt-dlp/yt-dlp/releases), guarde-o em uma pasta permanente e defina `YTDLP_PATH` no `.env` como o caminho completo desse executável. Reinicie o Sonora após mudar a configuração.
+```powershell
+winget upgrade --exact --id yt-dlp.yt-dlp --source winget
+```
 
-O Sonora usa o Node instalado para executar os desafios JavaScript do YouTube. O executável oficial `yt-dlp.exe` já inclui o componente EJS; outras distribuições podem exigir configuração própria. Mantenha o programa atualizado conforme o [guia oficial de EJS](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
+Feche e reabra o terminal, volte à pasta do bot e confira:
+
+```powershell
+(Get-Command yt-dlp.exe).Source
+yt-dlp --version
+node --version
+```
+
+O pacote pode instalar dependências adicionais. Se o WinGet disser que não há atualização mas a versão continuar anterior a **2026.11.23**, use a alternativa oficial abaixo. [Instalação e atualização documentadas pelo yt-dlp](https://github.com/yt-dlp/yt-dlp/wiki/Installation#windows)
+
+### Alternativa: executável oficial Windows x64
+
+1. Na [release oficial 2026.11.23](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.11.23), ou numa [release estável posterior](https://github.com/yt-dlp/yt-dlp/releases/latest), baixe **`yt-dlp.exe`**, o executável Windows x64. Não baixe `yt-dlp_linux`, a versão ARM64 nem o código-fonte para este procedimento.
+2. Guarde-o numa pasta permanente da sua conta, por exemplo `%LOCALAPPDATA%\Sonora\tools`. Não substitua a cópia gerenciada pelo WinGet; se já houver um executável nesse destino, preserve a versão anterior antes de trocá-la.
+3. Usando esse destino, confira a versão e obtenha o caminho completo no PowerShell:
+
+   ```powershell
+   & "$env:LOCALAPPDATA\Sonora\tools\yt-dlp.exe" --version
+   (Get-Item "$env:LOCALAPPDATA\Sonora\tools\yt-dlp.exe").FullName
+   ```
+
+4. No `.env`, defina `YTDLP_PATH=` com **o caminho completo exibido**, sem escrever literalmente `%LOCALAPPDATA%` ou `$env:LOCALAPPDATA`: esses nomes não são expandidos no `.env` do Sonora. Não inclua `--version` nesse valor.
+
+Para futuras atualizações **dessa cópia independente**, você pode baixar outra release oficial ou executar manualmente `& "$env:LOCALAPPDATA\Sonora\tools\yt-dlp.exe" -U`. Para a cópia gerenciada pelo WinGet, continue usando `winget upgrade`, evitando misturar os métodos. Se `YTDLP_PATH` estiver definido, a versão importante é a desse arquivo, mesmo que `yt-dlp --version` no terminal mostre outra.
+
+### Node, EJS e teste depois da atualização
+
+O Sonora habilita o mesmo Node que executa o bot para os desafios JavaScript do YouTube. O executável oficial `yt-dlp.exe` já inclui o componente EJS compatível; **não é necessário instalar Python ou EJS separadamente nessa opção**. Na versão 2026.11.23, a referência é EJS 0.8.0. Instalações Python diferentes precisam manter EJS no mesmo ambiente do yt-dlp. [Guia oficial de EJS](https://github.com/yt-dlp/yt-dlp/wiki/EJS)
+
+Na pasta do projeto, execute `npm.cmd run host:check` e reinicie o bot, manualmente ou pelo Agendador, nunca nos dois ao mesmo tempo. Teste primeiro um arquivo local e depois um vídeo individual. O diagnóstico local não garante que o YouTube aceitará a conexão.
 
 YouTube pode exigir autenticação, limitar downloads ou mudar seu serviço; nenhuma instalação garante que todo link tocará. Spotify fornece os dados para buscar uma faixa equivalente no YouTube, não seu áudio original. São aceitos links de faixas/vídeos individuais, não playlists completas. Não compartilhe cookies de autenticação; se forem necessários, guarde-os fora do repositório e dos pacotes distribuídos.
 

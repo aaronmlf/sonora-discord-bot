@@ -5,6 +5,7 @@ import type { ExternalTrack } from "../types.js";
 
 const execFileAsync = promisify(execFile);
 const AUDIO_FORMAT = "bestaudio[acodec=opus]/bestaudio[channels<=2]/bestaudio/best";
+const JS_CHALLENGE_ERROR = /javascript runtime|challenge solving|error solving .*challenge|signature solving|yt_dlp_ejs|yt-dlp-ejs/i;
 
 interface YtDlpInfo {
   id?: string;
@@ -98,19 +99,28 @@ export function describeYtDlpError(error: unknown): string {
     : typeof details?.message === "string" ? details.message : String(error);
   if (details?.code === "ENOENT") return "yt-dlp nao foi encontrado. Verifique YTDLP_PATH.";
   if (details?.killed) return "A consulta excedeu o tempo limite. Verifique a conexao e tente novamente.";
-  if (/429|too many requests|sign in to confirm.*not a bot/i.test(message)) {
+  // Prefer the final error over warnings about formats that were never selected.
+  // Never expose the execFile command (it can include a private cookies-file path).
+  const lines = message.split(/\r?\n/).map((line) => line.trim())
+    .filter((line) => line && !/^Command failed:/i.test(line));
+  const fatal = lines.filter((line) => /^ERROR:/i.test(line)).at(-1);
+  const reason = fatal ?? lines.join("\n");
+  if (/\b429\b|too many requests|sign in to confirm.*not a bot/i.test(reason)) {
     return "O YouTube limitou ou bloqueou esta conexao (verificacao anti-bot). Aguarde antes de tentar novamente; nao e uma falha do arquivo de audio.";
   }
-  if (/no such option: --js-runtimes/i.test(message)) {
+  if (/\bHTTP(?:\s+Error)?\s+403\b|\b403\s+Forbidden\b/i.test(reason)) {
+    return "O YouTube recusou o acesso ao audio (HTTP 403). Atualize o yt-dlp e confira se o video e acessivel nesta conexao.";
+  }
+  if (/no such option: --js-runtimes/i.test(reason)) {
     return "O yt-dlp instalado esta desatualizado. Atualize-o para uma versao com suporte a JavaScript/EJS.";
   }
-  if (/javascript runtime|challenge solving|signature solving|yt_dlp_ejs|yt-dlp-ejs/i.test(message)) {
-    return "O yt-dlp nao conseguiu resolver o desafio JavaScript do YouTube. Atualize yt-dlp e seu componente EJS; o bot utiliza o Node instalado.";
+  if (JS_CHALLENGE_ERROR.test(reason)) {
+    return "O yt-dlp nao conseguiu resolver o desafio JavaScript do YouTube. Atualize o yt-dlp e o EJS; o Sonora ja habilita o Node instalado.";
   }
-  // Do not expose the execFile command (including cookie-file paths) in the dashboard.
-  const lines = message.split("\n").filter((line) => line.trim() && !/^Command failed:/i.test(line));
-  return (lines.filter((line) => /^ERROR:/i.test(line)).at(-1) ?? lines.at(-1) ?? "O processo yt-dlp falhou sem fornecer detalhes.")
-    .replace(/^ERROR:\s*/i, "").slice(0, 1_000);
+  if (fatal && /requested format is not available|no (?:video )?formats? (?:found|available)/i.test(fatal) && JS_CHALLENGE_ERROR.test(message)) {
+    return "O YouTube nao retornou um formato reproduzivel, e o yt-dlp relatou uma falha no desafio JavaScript. Atualize o yt-dlp e o EJS.";
+  }
+  return (fatal ?? lines.at(-1) ?? "O processo yt-dlp falhou sem fornecer detalhes.").replace(/^ERROR:\s*/i, "").slice(0, 1_000);
 }
 
 export class ExternalSourceService {
@@ -274,8 +284,10 @@ export class ExternalSourceService {
   }
 
   private youtubeClientArgs(): string[] {
-    return this.options.cookiesFile
-      ? []
-      : ["--extractor-args", "youtube:player_client=web_embedded,android_vr"];
+    // Older yt-dlp releases try the main player script, which can fail in both
+    // Node and Deno. The tv script is also the default in yt-dlp 2026.11.23.
+    // One extractor argument is required: another youtube: entry would replace it.
+    const anonymousClients = this.options.cookiesFile ? "" : "player_client=web_embedded,android_vr;";
+    return ["--extractor-args", `youtube:${anonymousClients}player_js_variant=tv`];
   }
 }

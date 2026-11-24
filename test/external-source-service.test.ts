@@ -129,6 +129,8 @@ describe("ExternalSourceService", () => {
     assert.equal(argument("--retries"), "2");
     assert.equal(argument("--fragment-retries"), "2");
     assert.equal(argument("--js-runtimes"), `node:${process.execPath}`);
+    assert.equal(argument("--extractor-args"), "youtube:player_client=web_embedded,android_vr;player_js_variant=tv");
+    assert.equal(command.args.filter((value) => value === "--extractor-args").length, 1);
     assert.equal(argument("-o"), "-");
     assert.match(argument("-f") ?? "", /^bestaudio/);
     assert.deepEqual(command.args.slice(-2), ["--", track.webpageUrl]);
@@ -139,7 +141,7 @@ describe("ExternalSourceService", () => {
     const service = new ExternalSourceService({ ytDlpPath: "yt-dlp", cookiesFile: "/private/cookies.txt" });
     const { args } = service.streamCommand(track);
     assert.equal(args[args.indexOf("--cookies") + 1], "/private/cookies.txt");
-    assert.equal(args.includes("--extractor-args"), false);
+    assert.equal(args[args.indexOf("--extractor-args") + 1], "youtube:player_js_variant=tv");
   });
 
   it("explica bloqueios externos e falhas de dependencia sem despejar o comando", async () => {
@@ -157,5 +159,14 @@ describe("ExternalSourceService", () => {
     assert.match(describeYtDlpError(new Error("no such option: --js-runtimes")), /desatualizado/);
     assert.match(describeYtDlpError(new Error("No supported JavaScript runtime")), /JavaScript/);
     assert.equal(describeYtDlpError({ stderr: "WARNING: something\nERROR: Video unavailable" }), "Video unavailable");
+  });
+
+  it("nao troca o erro final por avisos sobre outros formatos ou sobre JavaScript", () => {
+    const warning = "WARNING: n challenge solving failed. Ensure a supported JavaScript runtime is installed.";
+    assert.match(describeYtDlpError({ stderr: `${warning}\nERROR: unable to download video data: HTTP Error 403: Forbidden` }), /HTTP 403/);
+    assert.equal(describeYtDlpError({ stderr: `${warning}\nERROR: Video unavailable` }), "Video unavailable");
+    assert.match(describeYtDlpError({ stderr: `${warning}\nERROR: Requested format is not available.` }), /formato reproduzivel.*JavaScript/);
+    assert.match(describeYtDlpError({ stderr: "WARNING: Error solving n challenge request using node" }), /Atualize o yt-dlp e o EJS/);
+    assert.doesNotMatch(describeYtDlpError(new Error("Command failed: yt-dlp --cookies confidential.txt")), /confidential/);
   });
 });

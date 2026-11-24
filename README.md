@@ -149,13 +149,21 @@ Os novos controles preservam a autenticação do painel e a proteção das opera
 
 Ao abrir um catálogo antigo, a migração cria `data/library.json.pre-v3-<data>.bak` antes da primeira gravação no formato novo. Use uma instância por pasta de dados.
 
-Para atualizar, encerre a instância anterior, execute `npm run build` e depois `npm start`. Recarregue o navegador. Para voltar à versão anterior, pare o bot, preserve uma cópia de `data`, extraia o backup do código e restaure o catálogo pré-migração correspondente. Arquivos movidos/restaurados/excluídos depois da atualização não são revertidos pelo backup de código; restaure os arquivos necessários pela lixeira antes de voltar.
+Para atualizar um pacote de Releases, pare o bot e faça backup privado de `.env` e dos dados. Extraia a [nova versão](https://github.com/aaronmlf/sonora-discord-bot/releases/latest) em outra pasta, transfira a configuração e os dados conforme o [guia de hospedagem](docs/host.md#levar-o-bot-para-outro-aparelho), instale as dependências de execução e rode `npm start`. Se usa a versão de desenvolvimento, atualize o código e execute `npm run build` antes de `npm start`.
+
+Para voltar à versão anterior, pare o bot, preserve uma cópia de `data` e restaure o pacote e o catálogo correspondentes. Arquivos movidos/restaurados/excluídos depois da atualização não são revertidos pelo backup de código; restaure os arquivos necessários pela lixeira antes de voltar.
 
 ## YouTube e Spotify — modo experimental
 
 Links do YouTube são transmitidos por `yt-dlp` e FFmpeg sem criar arquivos permanentes. Links do Spotify são consultados pelo oEmbed oficial para obter o título e então convertidos em uma busca equivalente no YouTube.
 
 Atualmente são aceitos vídeos individuais do YouTube e faixas individuais do Spotify. Playlists, álbuns, podcasts e transmissões ao vivo são recusados.
+
+Para a correção de YouTube do Sonora **v0.1.1**, use como base o **yt-dlp 2026.11.23**, ou uma versão estável mais recente, com seu componente **EJS compatível**. Essa [versão do yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.11.23) inclui correções do extrator do YouTube. Atualizar apenas o pacote do Sonora não atualiza o `yt-dlp` instalado no computador/celular; o bot não instala nem atualiza ferramentas automaticamente. Arquivos locais continuam independentes do `yt-dlp`.
+
+O Sonora habilita o Node que já o executa para os desafios JavaScript. Ter Node instalado não substitui o EJS: o executável oficial Windows já o inclui; uma instalação Python precisa instalá-lo no mesmo ambiente do `yt-dlp`. O grupo `yt-dlp[default]` seleciona a versão compatível; para **2026.11.23**, ela é **EJS 0.8.0**. [Requisitos oficiais de EJS](https://github.com/yt-dlp/yt-dlp/wiki/EJS)
+
+Siga a atualização correspondente ao host: [Linux, incluindo Manjaro](docs/host.md#youtube-no-linux-incluindo-manjaro), [Windows x64](docs/windows.md#5-youtubespotify-opcional-e-experimental) ou [Android ARM64/Termux](docs/host.md#atualizar-youtube-no-termux). Os guias incluem alternativas oficiais caso o gerenciador de pacotes ainda ofereça uma versão antiga. Se definir `YTDLP_PATH`, confira a versão **desse executável**, não apenas a do comando `yt-dlp` encontrado no terminal, e reinicie o bot após alterar o `.env`.
 
 Caso o YouTube exija autenticação no ambiente de hospedagem, exporte cookies válidos para um arquivo e configure:
 
@@ -262,7 +270,7 @@ A interface móvel inclui controles de toque maiores, navegação compacta e sa�
 4. Se reorganizou arquivos, use **Reindexar pasta**. A reindexação atualiza também os caminhos das faixas já na fila. Os áudios não são movidos nem apagados por essa operação.
 5. **Carregando áudio** significa que ainda não chegaram dados para reprodução. A fonte é interrompida com erro se não iniciar em 45 segundos ou deixar de enviar áudio por 30 segundos; pausas voluntárias não contam nesse limite. Uma faixa que falha não fica presa no loop: a fila segue para a próxima.
 
-YouTube é experimental e pode impor bloqueios ou limites por conexão. O bot utiliza o Node instalado para os desafios JavaScript do yt-dlp; mantenha yt-dlp e seu componente EJS atualizados conforme a [documentação oficial](https://github.com/yt-dlp/yt-dlp/wiki/EJS). Nenhuma configuração contorna garantidamente os bloqueios da plataforma. Spotify identifica a faixa e busca um equivalente no YouTube, não reproduz o stream do Spotify.
+YouTube é experimental e pode impor bloqueios ou limites por conexão. Confira a versão do executável selecionado em `YTDLP_PATH` e siga as [instruções de atualização por sistema](#youtube-e-spotify--modo-experimental), mantendo Node e EJS compatíveis. Nenhuma configuração contorna garantidamente os bloqueios da plataforma. Spotify identifica a faixa e busca um equivalente no YouTube, não reproduz o stream do Spotify.
 
 Uma perda de conexão de voz pausa a reprodução e preserva a fila. Se ela não se recuperar em 20 segundos, use `/join` novamente. A mensagem do painel diferencia isso de erro no arquivo ou download. O diagnóstico em **Preferências** verifica a comunicação e as ferramentas necessárias.
 
