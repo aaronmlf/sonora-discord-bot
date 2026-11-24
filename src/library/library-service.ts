@@ -7,6 +7,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import type { AudioCategory, LibraryTrack } from "../types.js";
+import { portableLibraryPath } from "./library-path.js";
 
 const execFileAsync = promisify(execFile);
 const SUPPORTED_EXTENSIONS = new Set([
@@ -87,7 +88,7 @@ function cleanOptional(value: string | undefined): string | undefined {
 }
 
 function categoryFor(relativePath: string): AudioCategory {
-  return relativePath.split(path.sep)[0]?.toLowerCase() === "effects"
+  return relativePath.split("/")[0]?.toLowerCase() === "effects"
     ? "effect"
     : "music";
 }
@@ -132,6 +133,7 @@ export class LibraryService {
   async importCatalog(catalog: { tracks: LibraryTrack[]; trash: TrashEntry[] }): Promise<void> {
     return this.exclusive(async () => {
       this.tracks = structuredClone(catalog.tracks); this.trash = structuredClone(catalog.trash);
+      this.normalizeCatalogPaths();
       this.overrides = Object.fromEntries([...this.tracks, ...this.trash.map(entry => entry.track)].map(track => [track.id, { title: track.title, artist: track.artist ?? null, album: track.album ?? null, category: track.category, tags: track.tags ?? [], favorite: track.favorite ?? false }]));
       this.sortTracks(); await this.persist();
     });
@@ -175,6 +177,7 @@ export class LibraryService {
         this.trash = persisted.trash ?? [];
       }
       if (persisted.version !== 3) await copyFile(this.metadataPath, `${this.metadataPath}.pre-v3-${Date.now()}.bak`);
+      this.normalizeCatalogPaths();
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code;
       if (code !== "ENOENT") throw error;
@@ -288,7 +291,7 @@ export class LibraryService {
   }
 
   async safeFolder(relative: string, create = false, internal = false): Promise<string> {
-    const parts = relative.replaceAll("\\", "/").split("/");
+    const parts = portableLibraryPath(relative).split("/");
     if (!relative || parts.some(part => !part || part === "." || part === ".." || (!internal && part.startsWith("."))) || (!internal && !["music", "effects"].includes(parts[0]!))) throw new Error("Pasta inválida.");
     let folder = path.resolve(this.audioDir);
     for (const part of parts) {
@@ -330,7 +333,7 @@ export class LibraryService {
       catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
       await rename(source, destination);
       const oldPath = track.relativePath; const oldCategory = track.category; const oldOverride = this.overrides[trackId]?.category;
-      track.relativePath = path.relative(this.audioDir, destination);
+      track.relativePath = portableLibraryPath(path.relative(this.audioDir, destination));
       track.category = categoryFor(track.relativePath);
       if (this.overrides[trackId]) this.overrides[trackId]!.category = track.category;
       try { await this.persist(); }
@@ -391,7 +394,7 @@ export class LibraryService {
       .filter((fullPath) => SUPPORTED_EXTENSIONS.has(path.extname(fullPath).toLowerCase()))
       .sort((a, b) => a.localeCompare(b, "pt-BR"));
     const currentRelativePaths = new Set(
-      files.map((fullPath) => path.relative(this.audioDir, fullPath)),
+      files.map((fullPath) => portableLibraryPath(path.relative(this.audioDir, fullPath))),
     );
     const previousByPath = new Map(
       this.tracks.map((track) => [track.relativePath, track]),
@@ -412,7 +415,7 @@ export class LibraryService {
     const newHashes = new Map<string, number>();
     const hashes = new Map<string, string>();
     for (const file of files) {
-      const relative = path.relative(this.audioDir, file);
+      const relative = portableLibraryPath(path.relative(this.audioDir, file));
       if (!previousByPath.has(relative)) {
         try { const hash = await hashFile(file); hashes.set(file, hash); newHashes.set(hash, (newHashes.get(hash) ?? 0) + 1); } catch { /* Report in scan below. */ }
       }
@@ -422,7 +425,7 @@ export class LibraryService {
     for (const fullPath of files) {
       try {
       const extension = path.extname(fullPath).toLowerCase();
-      const relativePath = path.relative(this.audioDir, fullPath);
+      const relativePath = portableLibraryPath(path.relative(this.audioDir, fullPath));
       const fileStat = await stat(fullPath);
       const modifiedAt = fileStat.mtime.toISOString();
       let previous = previousByPath.get(relativePath);
@@ -476,7 +479,7 @@ export class LibraryService {
       };
       scanned.push(this.applyOverride(track, this.overrides[id]));
       } catch {
-        const relativePath = path.relative(this.audioDir, fullPath);
+        const relativePath = portableLibraryPath(path.relative(this.audioDir, fullPath));
         this.scanStatus.errors.push({ file: relativePath, message: "Não foi possível ler este áudio. Verifique o formato e o FFprobe." });
         const previous = previousByPath.get(relativePath);
         if (previous) scanned.push(previous);
@@ -565,6 +568,12 @@ export class LibraryService {
 
   private sortTracks(): void {
     this.tracks.sort((a, b) => a.title.localeCompare(b.title, "pt-BR"));
+  }
+
+  private normalizeCatalogPaths(): void {
+    for (const track of [...this.tracks, ...this.trash.map(entry => entry.track)]) {
+      track.relativePath = portableLibraryPath(track.relativePath);
+    }
   }
 
   private async persist(): Promise<void> {

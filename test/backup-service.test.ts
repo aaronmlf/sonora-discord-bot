@@ -11,6 +11,7 @@ import { PlaylistService } from "../src/playlists/playlist-service.js";
 import { SceneService } from "../src/scenes/scene-service.js";
 import { PlayerManager } from "../src/player/player-manager.js";
 import type { AudioSourceFactory } from "../src/audio/audio-source-factory.js";
+import type { LibraryTrack } from "../src/types.js";
 
 async function bytes(stream: Readable): Promise<Buffer> { const chunks: Buffer[] = []; for await (const chunk of stream) chunks.push(Buffer.from(chunk)); return Buffer.concat(chunks); }
 async function fixture(root: string) {
@@ -20,6 +21,27 @@ async function fixture(root: string) {
   const service = new BackupService({ dataDir: root, audioDir: path.join(root, "audio"), maxBytes: 1024 * 1024, library, playlists, scenes, players });
   return { library, playlists, scenes, players, service };
 }
+it("exports native Windows legacy queue snapshots with portable catalog and backup paths", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "sonora-native-backup-"));
+  const a = await fixture(root);
+  try {
+    const now = new Date().toISOString();
+    const track: LibraryTrack = { id: "native", source: "local", title: "Tema", category: "music", relativePath: path.join("music", "Mesa", "tema.wav"), sizeBytes: 1, modifiedAt: now };
+    await a.library.importCatalog({ tracks: [track], trash: [] });
+    const player = a.players.getOrCreate("test-guild", "Teste");
+    const queued = { ...track, requestedBy: "Teste", requestedAt: now };
+    player.offerRecovery({ ...player.getSnapshot(), current: queued, upcoming: [{ ...queued, entryId: "next" }] });
+    const archive = await bytes(await a.service.export(false));
+    const records = gunzipSync(archive).toString("utf8").trim().split("\n").map(line => JSON.parse(line));
+    const metadata = records[1].value;
+    assert.equal(metadata.library.tracks[0].relativePath, "music/Mesa/tema.wav");
+    assert.equal(metadata.sessions[0].current.relativePath, "music/Mesa/tema.wav");
+    assert.equal(metadata.sessions[0].upcoming[0].relativePath, "music/Mesa/tema.wav");
+    // Export must not mutate the in-memory recovery snapshot.
+    assert.equal(player.recoverySnapshot()?.current?.source, "local");
+    assert.deepEqual(player.recoverySnapshot()?.current, queued);
+  } finally { a.players.shutdown(); await a.players.flush(); await rm(root, { recursive: true, force: true }); }
+});
 it("round-trips metadata and optional audio without exporting credentials", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "sonora-backup-test-"));
   const a = await fixture(path.join(root, "a")); const b = await fixture(path.join(root, "b"));

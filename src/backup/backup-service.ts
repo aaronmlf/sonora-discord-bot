@@ -9,9 +9,11 @@ import { z } from "zod";
 import { StringDecoder } from "node:string_decoder";
 import { saveJson } from "../core/json-store.js";
 import type { LibraryService } from "../library/library-service.js";
+import { portableLibraryPath } from "../library/library-path.js";
 import type { PlaylistService } from "../playlists/playlist-service.js";
 import type { PlayerManager } from "../player/player-manager.js";
 import { sceneSchema, type SceneService } from "../scenes/scene-service.js";
+import type { QueuedTrack } from "../types.js";
 
 const relativePath = z.string().max(1024).refine(value => /^(music|effects)\//.test(value) && !value.includes("\\") && !value.includes("\0") && value.split("/").every(part => part && !part.startsWith(".")));
 const text = z.string().max(2048);
@@ -33,7 +35,17 @@ export class BackupService {
   constructor(private readonly options: { dataDir: string; audioDir: string; maxBytes: number; library: LibraryService; playlists: PlaylistService; scenes: SceneService; players: PlayerManager }) {}
   private async metadata(): Promise<Metadata> {
     const { library, playlists, scenes, players } = this.options;
-    return metadataSchema.parse({ library: await library.exportCatalog(), playlists: playlists.list(), scenes: scenes.list(), sessions: players.exportSessions() });
+    // Recovered queues may still contain snapshots written by an older Windows
+    // version, even after the library itself has migrated to portable paths.
+    const portableQueuedTrack = (value: QueuedTrack): QueuedTrack => value.source === "local"
+      ? { ...value, relativePath: portableLibraryPath(value.relativePath) }
+      : value;
+    const sessions = players.exportSessions().map(session => ({
+      ...session,
+      current: session.current ? portableQueuedTrack(session.current) : null,
+      upcoming: session.upcoming.map(portableQueuedTrack),
+    }));
+    return metadataSchema.parse({ library: await library.exportCatalog(), playlists: playlists.list(), scenes: scenes.list(), sessions });
   }
   private files(metadata: Metadata): Map<string, number> {
     const files = new Map(metadata.library.tracks.map(track => [track.relativePath, track.sizeBytes]));

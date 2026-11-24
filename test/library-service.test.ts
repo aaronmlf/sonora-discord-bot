@@ -159,7 +159,7 @@ describe("LibraryService", () => {
       assert.ok(moved);
       assert.equal(moved.id, original.id);
       assert.equal(moved.title, "Tema principal");
-      assert.equal(moved.relativePath, path.join("music", "Campanha", "tema.wav"));
+      assert.equal(moved.relativePath, "music/Campanha/tema.wav");
     } finally {
       await rm(temporaryRoot, { recursive: true, force: true });
     }

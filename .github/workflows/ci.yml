@@ -67,3 +67,57 @@ jobs:
           AUDIO_DIR: ${{ runner.temp }}/sonora-ci-audio
           # yt-dlp is optional here; this job does not contact media providers.
           YTDLP_PATH: yt-dlp
+
+  verify-package:
+    name: Pacote compilado / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Instalar FFmpeg no Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+
+      - name: Instalar FFmpeg no Windows
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg --yes --no-progress
+
+      - name: Gerar os arquivos da distribuição
+        run: |
+          npm ci --include=dev --include=optional --no-audit --no-fund
+          npm run host:pack
+
+      - name: Extrair TAR.GZ
+        if: runner.os == 'Linux'
+        run: |
+          mkdir extracted
+          tar -xzf release/sonora-host.tar.gz -C extracted
+
+      - name: Extrair ZIP
+        if: runner.os == 'Windows'
+        run: Expand-Archive -LiteralPath release/sonora-host.zip -DestinationPath extracted
+
+      - name: Instalar e verificar dependências só de execução
+        working-directory: extracted/sonora
+        run: |
+          npm ci --omit=dev --include=optional --no-audit --no-fund
+          npm run host:check
+
+      - name: Testar o painel do pacote extraído
+        run: node scripts/smoke-host.mjs extracted/sonora

@@ -2,11 +2,11 @@
 
 Seu bot pode ficar disponível enquanto o Sonora estiver rodando em um aparelho ligado e com internet. Um PC ou mini-PC Linux é a opção mais previsível para ficar ligado o dia todo. Um Android antigo é uma alternativa para testar com o Termux. O bot continua entrando na chamada quando alguém usa `/join` ou `/play`.
 
-Se ainda não tiver um bot, siga primeiro a [preparação no Discord](../README.md#preparação-no-discord). Se já tiver, você pode manter a mesma aplicação e só trocar o aparelho que hospeda o Sonora.
+Se ainda não tiver um bot, siga primeiro a [preparação no Discord](../README.md#preparação-no-discord). Se já tiver, você pode manter a mesma aplicação e só trocar o aparelho que hospeda o Sonora. Para Windows, siga o [guia de instalação para Windows](windows.md).
 
 ## Levar o bot para outro aparelho
 
-Depois de baixar o projeto e instalar suas dependências conforme o [README](../README.md#instalação), gere o pacote com `npm run host:pack` em um computador que compila o Sonora. O arquivo `release/sonora-host.tar.gz` extrai uma pasta `sonora` com o código e o JavaScript pronto. O pacote deixa de fora suas músicas, configurações privadas e credenciais. Gere uma cópia nova quando atualizar o bot.
+Baixe **`sonora-host.tar.gz`** em **Assets** na [última versão do Sonora](https://github.com/aaronmlf/sonora-discord-bot/releases/latest). Esse arquivo extrai uma pasta `sonora` com o JavaScript pronto. O pacote não contém músicas, configurações privadas, credenciais nem dependências específicas do computador que o compilou. Não baixe o arquivo automático **Source code** para estas instruções. Para compilar e empacotar a sua própria versão, use `npm run host:pack` em um PC com as dependências de desenvolvimento instaladas.
 
 1. Extraia o pacote no armazenamento do novo host e entre na pasta `sonora`.
 2. Instale Node.js 22.12 ou superior, FFmpeg e FFprobe. Para usar links externos, instale também `yt-dlp` e o componente EJS da sua distribuição.
@@ -18,7 +18,23 @@ Pare a instância anterior antes de iniciar a nova com o mesmo token. Para mudar
 
 Inicie com `npm start` no primeiro teste. Confirme `/join` e `/play` com um arquivo local. Depois experimente um link externo, se for usar essa função. O diagnóstico local não verifica a conexão de voz do seu aparelho com o Discord.
 
-## PC Linux com início automático
+## PC Linux
+
+Instale [Node.js LTS](https://nodejs.org/en/download) (mínimo 22.12) e FFmpeg/FFprobe para sua distribuição. No Debian/Ubuntu, por exemplo, instale FFmpeg com `sudo apt install ffmpeg`; no Fedora, use `sudo dnf install ffmpeg-free` (essa variante tem [menos codecs](https://packages.fedoraproject.org/pkgs/ffmpeg/ffmpeg-free/)). Verifique com `node --version`, `npm --version`, `ffmpeg -version` e `ffprobe -version`. Se o Node do repositório da distribuição for antigo demais, use a opção apropriada na página oficial de download do Node.js.
+
+Abra o terminal na pasta que contém o arquivo baixado. Use um local em que você possa gravar e que não tenha uma pasta `sonora` de outra instalação. Execute:
+
+```sh
+tar -xzf sonora-host.tar.gz
+cd sonora
+npm ci --omit=dev --include=optional
+cp .env.example .env
+chmod 600 .env
+```
+
+Abra o `.env` num editor de texto e preencha `DISCORD_TOKEN` e `DISCORD_CLIENT_ID`. Depois execute `npm run host:check` e `npm start`. Deixe esse terminal aberto enquanto estiver testando. O painel abre em [http://127.0.0.1:3210](http://127.0.0.1:3210) no próprio PC.
+
+### Início automático no Linux
 
 Use o modelo [sonora.service.example](../scripts/sonora.service.example) se a distribuição usar systemd. Copie para `~/.config/systemd/user/sonora.service` e ajuste `WorkingDirectory` para a pasta `sonora` e `ExecStart` para o caminho exibido por `command -v node`. Se o caminho contiver espaços, use aspas na unidade.
 
@@ -33,9 +49,9 @@ O serviço reinicia o bot se o processo sair. Para pará-lo e desativar o iníci
 
 ## Celular Android com Termux
 
-Prefira um **Android ARM64** disponível para teste. Use [Termux](https://f-droid.org/en/packages/com.termux/) e [Termux:Boot](https://f-droid.org/en/packages/com.termux.boot/) da mesma origem. O Termux tem suporte a pacotes no Android 7 ou superior. A disponibilidade e a execução em segundo plano dependem do aparelho e da versão do Android. [Instalação do Termux](https://github.com/termux/termux-app#installation)
+Use de preferência um **Android ARM64**. Instale [Termux](https://f-droid.org/en/packages/com.termux/) e, se quiser iniciar com o celular, [Termux:Boot](https://f-droid.org/en/packages/com.termux.boot/) da mesma origem. O Termux tem suporte a pacotes no Android 7 ou superior. A disponibilidade e a execução em segundo plano dependem do aparelho e da versão do Android. Não é um APK do Sonora: o bot roda dentro do Termux. [Instalação do Termux](https://github.com/termux/termux-app#installation)
 
-1. Transfira `sonora-host.tar.gz` para a pasta **Downloads** do celular. No Termux, execute:
+1. Baixe `sonora-host.tar.gz` em **Assets** na [última versão](https://github.com/aaronmlf/sonora-discord-bot/releases/latest) e salve-o na pasta **Downloads** do celular. No Termux, execute:
 
    ```sh
    pkg update
@@ -49,7 +65,7 @@ Prefira um **Android ARM64** disponível para teste. Use [Termux](https://f-droi
    chmod 600 .env
    ```
 
-   Aceite o acesso ao armazenamento quando o Android pedir para importar o pacote. O projeto executa dentro do diretório pessoal do Termux. Se já houver um `~/sonora` em uso, pare o bot e preserve a instalação e seus dados antes de substituir arquivos. Para links externos, use `pkg install python-yt-dlp yt-dlp-ejs`. [Pacotes Node.js do Termux](https://github.com/termux/termux-packages/blob/master/packages/nodejs-lts/build.sh) · [Pacote yt-dlp](https://github.com/termux/termux-packages/blob/master/packages/python-yt-dlp/build.sh)
+   Aceite o acesso ao armazenamento quando o Android pedir para importar o pacote. O projeto executa dentro do diretório pessoal do Termux. Se já houver um `~/sonora` em uso, pare o bot e preserve a instalação e seus dados antes de extrair o pacote. Para links externos, use `pkg install python-yt-dlp yt-dlp-ejs`. [Pacotes Node.js do Termux](https://github.com/termux/termux-packages/blob/master/packages/nodejs-lts/build.sh) · [Pacote yt-dlp](https://github.com/termux/termux-packages/blob/master/packages/python-yt-dlp/build.sh)
 
 2. Preencha o `.env` no Termux com o token e o ID da aplicação. Deixe `HOST=127.0.0.1`. Transfira seus áudios conforme necessário. Execute `npm run host:check` e `npm start` para o primeiro teste. Use a versão compilada do pacote no Termux. O compilador TypeScript usado no projeto roda no PC.
 

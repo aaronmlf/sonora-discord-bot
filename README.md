@@ -2,7 +2,9 @@
 
 Bot de áudio self-hosted para Discord com uma biblioteca de arquivos pessoais e um painel web local. Inclui comandos nativos, fila independente por servidor, pausa, avanço, volume, repetição, upload de áudio, links externos experimentais e efeitos sonoros sobrepostos à música.
 
-Você pode criar seu próprio bot no Discord e rodar o Sonora com ele. Se quiser deixar o bot disponível sem manter seu computador principal ligado, use um [PC Linux antigo ou um celular Android com Termux](docs/host.md).
+Você pode criar seu próprio bot no Discord e rodar o Sonora com ele. Se quiser deixar o bot disponível sem manter seu computador principal ligado, use um PC Windows ou Linux, ou um celular Android com Termux.
+
+**[Baixar a versão pronta em Releases](https://github.com/aaronmlf/sonora-discord-bot/releases/latest)**
 
 ## Requisitos
 
@@ -11,7 +13,7 @@ Você pode criar seu próprio bot no Discord e rodar o Sonora com ele. Se quiser
 - `yt-dlp` disponível no sistema para o modo experimental de YouTube/Spotify
 - Uma aplicação de bot criada no [Discord Developer Portal](https://discord.com/developers/applications)
 
-Não é necessário Docker. Para rodar continuamente em outro computador ou experimentar em um celular Android, veja o [guia de hospedagem](docs/host.md).
+Não é necessário Docker. Os pacotes em Releases já têm o JavaScript compilado; você instala apenas as dependências de execução no seu aparelho.
 
 ## Preparação no Discord
 
@@ -24,6 +26,20 @@ Não é necessário Docker. Para rodar continuamente em outro computador ou expe
 O Sonora usa comandos `/`, portanto não precisa da permissão privilegiada de leitura do conteúdo das mensagens. Veja também o [guia oficial de configuração de bots do Discord](https://docs.discord.com/developers/quick-start/getting-started).
 
 ## Instalação
+
+1. Siga a [preparação no Discord](#preparação-no-discord) para ter seu próprio token e ID de aplicação.
+2. Baixe o arquivo apropriado na seção **Assets** da [última versão](https://github.com/aaronmlf/sonora-discord-bot/releases/latest). Os links **Source code** não contêm a versão compilada.
+3. Siga o guia para seu sistema:
+
+   | Sistema | Arquivo | Guia |
+   | --- | --- | --- |
+   | Windows 64 bits (x64) | `sonora-host.zip` | [Instalação e Agendador de Tarefas](docs/windows.md) |
+   | Linux | `sonora-host.tar.gz` | [Instalação e início automático no Linux](docs/host.md#pc-linux) |
+   | Android ARM64 | `sonora-host.tar.gz` | [Instalação no Termux](docs/host.md#celular-android-com-termux) |
+
+Os pacotes não incluem Node.js, FFmpeg ou `node_modules`. Cada guia mostra como instalar o necessário, preencher seu `.env` e iniciar o bot, sem rodar `npm run build`.
+
+### Para desenvolver ou compilar a partir do código
 
 ```bash
 git clone https://github.com/aaronmlf/sonora-discord-bot.git
